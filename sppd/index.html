@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPPD Desa Tambusai</title>
+
+<style>
+body{margin:0;font-family:Arial,sans-serif;background:#f4f6f9}
+table {
+  border-collapse: collapse;
+}
+
+.tabel-utama {
+  width:100%;
+  border-collapse:collapse;
+  border-top:1px solid black;
+  border-bottom:1px solid black;
+}
+
+td{
+  padding:4px;
+  vertical-align:top;
+}
+
+.tabel-utama td {
+  border:none;
+  padding:4px;
+  border:none !important;
+}
+
+.tabel-utama td:nth-child(3){
+  text-align:center;
+  width:10px;
+}
+
+.tabel-tanpa-garis-dalam {
+  border:1px solid black; /* garis luar */
+  border-collapse:collapse;
+}
+
+.tabel-tanpa-garis-dalam td {
+  border:none; /* hilangkan semua garis dalam */
+  padding:6px;
+}
+
+.tabel-garis-atas-bawah {
+  width:100%;
+  border-collapse:collapse;
+  border-top:1px solid black;
+  border-bottom:1px solid black;
+  border-left:none;
+  border-right:none;
+}
+
+.tabel-garis-atas-bawah td {
+  border:none !important;
+  padding:6px;
+}
+
+.tabel-utama td {
+  font-size:10pt;
+  line-height:1.2;
+}
+
+header{background:#1f4e79;color:#fff;padding:15px 20px;font-size:22px;font-weight:bold}
+.wrap{display:flex}
+.side{width:240px;background:#233445;min-height:100vh;color:#fff}
+.side a{display:block;color:#fff;padding:14px 18px;text-decoration:none;border-bottom:1px solid #334}
+.side a:hover{background:#1a2733}
+.main{flex:1;padding:20px}
+.card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 2px 6px rgba(0,0,0,.08);margin-bottom:20px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+input,textarea{width:100%;padding:8px;border:1px solid #ccc;border-radius:6px}
+button{padding:10px 14px;border:0;border-radius:6px;background:#1f4e79;color:#fff;cursor:pointer}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th,.tbl td{border:1px solid #ddd;padding:8px}
+.hidden{display:none}
+/* A4 FIX */
+.a4{
+  width:210mm;
+  height:297mm;
+  padding:1mm 10mm 9mm 10mm;
+  box-sizing:border-box;
+  font-family:"Times New Roman";
+  font-size:11.5pt;
+  line-height:1.25;
+  background:#fff;
+}
+
+@page{
+  size:A4;
+  margin:0;
+}
+
+/* PRINT */
+@media print{
+  body *{visibility:hidden}
+  #printArea,#printArea *{visibility:visible}
+  #printArea{position:absolute;left:0;top:0;width:100%}
+
+  .a4{
+    page-break-after:avoid;
+  }
+
+  table{
+    page-break-inside:avoid;
+  }
+
+  tr,td{
+    page-break-inside:avoid;
+  }
+}
+
+/* TABEL RAPI */
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+td{
+  border:1px solid #000;
+  padding:4px;
+  vertical-align:top;
+}
+
+/* OVERLAY CONTAINER */
+.a4{
+width:794px;
+height:1123px;
+position:relative;
+font-family:"Times New Roman";
+}
+</style>
+</head>
+
+<body>
+
+
+<div class='wrap'>
+
+<div class='side'>
+<a href='#' onclick="show('input')">Input Data SPPD</a>
+</div>
+
+<div class='main'>
+
+<!-- INPUT -->
+<div id='input' class='card'>
+<h2>Input Data SPPD</h2>
+
+<div class='grid'>
+<input id='nomor' placeholder='Nomor SPPD'>
+<input id='pejabat' placeholder='Pejabat memberi perintah'>
+<input id='nama' placeholder='Nama pegawai'>
+<input id='nip' placeholder='NIP'>
+<input id='gol' placeholder='Pangkat/Golongan'>
+<input id='jabatan' placeholder='Jabatan'>
+<input id='asal' placeholder='Tempat berangkat'>
+<input id='tujuan' placeholder='Tempat tujuan'>
+<input id='lama' placeholder='Lama perjalanan'>
+<input id="tglberangkat"
+  type="text" 
+  placeholder="Tanggal Berangkat"
+  onfocus="this.type='date'"
+  onblur="if(!this.value)this.type='text'">
+
+<input id="tglkembali"
+  type="text" 
+  placeholder="Tanggal Kembali"
+  onfocus="this.type='date'"
+  onblur="if(!this.value)this.type='text'">
+<input id='transport' placeholder='Alat angkutan'>
+<input id='instansi' placeholder='Instansi Pembebanan Anggaran'>
+<input id='anggaran' placeholder='Mata anggaran'>
+</div>
+
+<br>
+<textarea id='maksud' placeholder='Maksud perjalanan dinas'></textarea>
+<br><br>
+
+<button onclick='cetak()'>Preview / Cetak</button>
+</div>
+
+
+<!-- PRINT -->
+<div id='printArea' class='card hidden'></div>
+
+</div>
+</div>
+
+<script>
+
+function show(id){
+document.getElementById('input').classList.add('hidden');
+document.getElementById(id).classList.remove('hidden');
+}
+
+function val(id){
+return document.getElementById(id).value;
+}
+
+function muat(){
+let data=JSON.parse(localStorage.getItem('sppd')||'[]');
+list.innerHTML=data.map((x,i)=>`
+<tr>
+<td>${i+1}</td>
+<td>${x.nama}</td>
+<td>${x.tujuan}</td>
+<td>${x.tgl}</td>
+</tr>
+`).join('');
+}
+
+/* =========================
+   CETAK OVERLAY PDF
+========================= */
+function cetak(){
+let h = `
+<div class="a4">
+
+<!-- HEADER -->
+<div style="position:relative; text-align:center; margin-bottom:5px;">
+
+  <!-- LOGO KIRI -->
+  <img src="./assets/logo-kiri.png" 
+       style="position:absolute; left:0; top:-2px; width:55px;">
+
+  <!-- TEKS -->
+  <div style="font-weight:bold; line-height:1.4;">
+    PEMERINTAH DAERAH KABUPATEN KAMPAR<br>
+    KANTOR KEPALA DESA<br>
+    DESA TAMBUSAI
+  </div>
+
+</div>
+
+<!-- GARIS -->
+<div style="border-top:2px solid #000; margin-top:8px;"></div>
+
+<!-- ALAMAT -->
+<div style="text-align:center; font-size:8pt; margin:2px 0;">
+Jl. K.H Ahmad Dahlan Poros No.10 Desa Tambusai Kec. Rumbio Jaya, Kampar - Riau  
+<span style="margin-left:40px;">Website : https://tambusai.desa.id</span>
+</div>
+
+<div style="border-top:1px solid #000; margin-bottom:6px;"></div>
+
+<!-- JUDUL -->
+<div style="text-align:center; margin-top:5px;">
+  <span style="
+    font-weight:bold;
+    font-size:12pt;
+    border-bottom:1px solid black;
+    padding-bottom:0.5px;
+    display:inline-block;
+  ">
+    SURAT PERINTAH PERJALANAN DINAS (SPPD)
+  </span>
+</div>
+
+<div style="text-align:center;margin-bottom:6px">
+<span style="font-size:10pt;">
+  Nomor : 140/TB-PEM/${val('nomor')}
+</div>
+
+<!-- TABEL UTAMA -->
+<table class="tabel-utama">
+<tr>
+  <td width="5%">1.</td>
+  <td width="40%">Pejabat yang memberi perintah</td>
+  <td width="3%">:</td>
+  <td>${val('pejabat')}</td>
+</tr>
+
+<tr>
+  <td>2.</td>
+  <td>Nama Pegawai / NIP</td>
+  <td>:</td>
+  <td>${val('nama')} / ${val('nip')}</td>
+</tr>
+
+<tr>
+  <td>3.</td>
+  <td>a. Pangkat/Golongan menurut PP No. 6 Tahun 1997</td>
+  <td>:</td>
+  <td>${val('gol')}</td>
+</tr>
+
+<tr>
+  <td></td>
+  <td>b. Jabatan</td>
+  <td>:</td>
+  <td>${val('jabatan')}</td>
+</tr>
+
+<tr>
+  <td></td>
+  <td>c. Tingkat menurut Peraturan Perjalanan</td>
+  <td>:</td>
+  <td>-</td>
+</tr>
+
+<tr>
+  <td>4.</td>
+  <td>Maksud Perjalanan Dinas</td>
+  <td>:</td>
+  <td>${val('maksud')}</td>
+</tr>
+
+<tr>
+  <td>5.</td>
+  <td>Alat angkutan yang dipergunakan</td>
+  <td>:</td>
+  <td>${val('transport')}</td>
+</tr>
+
+<tr>
+  <td>6.</td>
+  <td>a. Tempat berangkat</td>
+  <td>:</td>
+  <td>${val('asal')}</td>
+</tr>
+
+<tr>
+  <td></td>
+  <td>b. Tempat tujuan</td>
+  <td>:</td>
+  <td>${val('tujuan')}</td>
+</tr>
+
+<tr>
+  <td>7.</td>
+  <td>a. Lamanya Perjalanan Dinas</td>
+  <td>:</td>
+  <td>${val('lama')} Hari</td>
+</tr>
+
+<tr>
+  <td></td>
+  <td>b. Tanggal berangkat</td>
+  <td>:</td>
+  <td>${val('tglberangkat')}</td>
+</tr>
+
+<tr>
+  <td></td>
+  <td>c. Tanggal harus kembali</td>
+  <td>:</td>
+  <td>${val('tglkembali')}</td>
+</tr>
+
+<tr>
+  <td>8.</td>
+  <td>Pembebanan Anggaran</td>
+  <td>:</td>
+</tr>
+
+<tr>
+  <td></td>
+  <td>a. Instansi</td>
+  <td>:</td>
+  <td>${val('instansi')}</td>
+</tr>
+
+<tr>
+  <td></td>
+  <td>b. Mata Anggaran</td>
+  <td>:</td>
+  <td>${val('anggaran')}</td>
+</tr>
+
+</table>
+
+<div style="width:100%; margin-top:10px;">
+  
+  <div style="width:40%; float:right; text-align:center;">
+    Dikeluarkan di : Desa Tambusai<br>
+    Pada tanggal : ${val('tglberangkat')}<br>
+
+    <b>PENGGUNA ANGGARAN</b><br><br><br><br>
+
+    KRIDO KAWAL BASUKI
+  </div>
+
+  <div style="clear:both;"></div>
+
+</div>
+
+<!-- TTD + PERJALANAN -->
+
+<table class="tabel-garis-atas-bawah">
+<tr>
+<td style="width:50%">
+I. Tiba di : ${val('tujuan')}<br>
+Pada tanggal :${val('tglberangkat')}
+</td>
+
+<td style="width:50%">
+Berangkat dari :${val('asal')}<br>
+Ke :${val('tujuan')}<br>
+Pada Tanggal :${val('tglberangkat')}
+<br><br><br><br>
+</td>
+</tr>
+</table>
+
+
+<table class="tabel-garis-atas-bawah">
+<tr>
+  <td style="width:50%;">
+    II. Tiba kembali di : Kantor Desa Tambusai<br>
+    Pada tanggal : ${val('tglkembali')}</td>
+  </td>
+
+  <td style="width:50%;">
+    Telah diperiksa dengan keterangan bahwa perjalanan tersebut
+    atas perintahnya dan semata-mata untuk kepentingan jabatan
+    dalam waktu sesingkat-singkatnya
+  </td>
+</tr>
+
+<tr>
+  <td colspan="2" style="text-align:right; padding-top:20px;">
+    <b>PENGGUNA ANGGARAN</b><br><br><br><br>
+    KRIDO KAWAL BASUKI
+  </td>
+</tr>
+</table>
+
+<!-- CATATAN -->
+<table>
+<tr><td>III. CATATAN LAIN-LAIN<br></td></tr>
+
+<td>
+IV. PERHATIAN :<br>
+Pejabat yang berwenang menerbitkan SPPD, Anggota yang melakukan Perjalanan Dinas, para pejabat yang mengesahkan tanggal berangkat/tiba serta Bendaharawan bertanggungjawab berdasarkan peraturan-peraturan Keuangan Negara apabila Negara mendapatkan rugi akibat kesalahan kealpaannya.
+</td>
+</tr>
+</table>
+
+</div>
+`;
+
+printArea.innerHTML = h;
+printArea.classList.remove('hidden');
+window.print();
+}
+
+muat();
+
+</script>
+</body>
+</html>
